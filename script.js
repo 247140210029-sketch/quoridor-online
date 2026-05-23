@@ -60,11 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initMainMenu() {
-        authScreen.classList.add('hidden');
-        mainMenu.classList.remove('hidden');
-        document.getElementById('profile-name').textContent = `Xin chào, ${currentUser.username}`;
-        document.getElementById('profile-rank').textContent = currentUser.rankScore;
-        document.getElementById('profile-wins').textContent = currentUser.wins || 0;
+	authScreen.classList.add('hidden');
+    	mainMenu.classList.remove('hidden');
+    
+    	// Sửa chỗ này: Lấy đúng biến currentUser đã load từ LocalStorage hoặc API
+    	document.getElementById('profile-name').textContent = `Xin chào, ${currentUser.username || "Người chơi"}`;
+    	document.getElementById('profile-rank').textContent = currentUser.rankScore || 1000;
+    	document.getElementById('profile-wins').textContent = currentUser.wins || 0;
     }
 
     // --- 4. BẢNG XẾP HẠNG ---
@@ -83,7 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. HỆ THỐNG SOCKET.IO ---
     function initSocket() {
-        socket = io(); 
+        socket = io(window.location.origin, {
+    	    transports: ['websocket'],
+            secure: true
+	}); 
         socket.on('match_found', (data) => {
             matchmakingScreen.classList.add('hidden');
             isOnlineMatch = true;
@@ -130,6 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let timeLeft = 60, timerInterval, particleInterval;
 
     function startGame() {
+	if (!currentUser || !currentUser.username) {
+            alert("Chưa đăng nhập! Vui lòng quay lại đăng nhập.");
+            return;
+    	}
         mainMenu.classList.add('hidden');     
         gameScreen.classList.remove('hidden'); 
         victoryOverlay.classList.remove('show');
