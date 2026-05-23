@@ -49,7 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) {
                 msgEl.textContent = data.error;
             } else {
-                currentUser = data.user;
+                // Sửa đoạn này: Đảm bảo dữ liệu lưu đúng cấu trúc
+                currentUser = { username: data.username, rankScore: 1000, wins: 0 }; 
+                localStorage.setItem('currentUser', JSON.stringify(currentUser)); 
+                
                 initMainMenu();
                 if (!isBgmPlaying) { playSound(bgmSound); isBgmPlaying = true; }
                 initSocket(); 
@@ -67,6 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
     	document.getElementById('profile-name').textContent = `Xin chào, ${currentUser.username || "Người chơi"}`;
     	document.getElementById('profile-rank').textContent = currentUser.rankScore || 1000;
     	document.getElementById('profile-wins').textContent = currentUser.wins || 0;
+    }
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        initMainMenu();
+        initSocket();
     }
 
     // --- 4. BẢNG XẾP HẠNG ---
