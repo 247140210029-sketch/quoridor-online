@@ -34,6 +34,29 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// --- CÁC HÀM XỬ LÝ API (CẦN THIẾT) ---
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: 'Đăng ký thành công' });
+    } catch (err) { res.status(500).json({ error: 'Lỗi đăng ký' }); }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+        if (user && (await bcrypt.compare(password, user.password))) {
+            res.json({ message: 'Đăng nhập thành công', username: user.username });
+        } else {
+            res.status(401).json({ error: 'Sai tài khoản hoặc mật khẩu' });
+        }
+    } catch (err) { res.status(500).json({ error: 'Lỗi server' }); }
+});
+
 // --- XỬ LÝ SOCKET.IO ---
 io.on('connection', (socket) => {
     socket.on('player_move', (data) => {
@@ -56,10 +79,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- ROUTE PHỤC VỤ GIAO DIỆN (ĐÃ FIX LỖI PATH) ---
+// --- ROUTE PHỤC VỤ GIAO DIỆN ---
 app.use((req, res, next) => {
-    // Nếu request không phải là API (không bắt đầu bằng /api hoặc /socket.io)
-    // thì gửi file index.html để React/Frontend xử lý
     if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
         res.sendFile(__dirname + '/index.html');
     } else {
