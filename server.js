@@ -15,11 +15,9 @@ app.use(express.static(__dirname));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// --- KẾT NỐI DATABASE MONGODB (ĐÃ LÀM SẠCH) ---
-// Render sẽ tự động cấp MONGODB_URI qua Environment Variables
+// --- KẾT NỐI DATABASE MONGODB ---
 const dbURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/quoridor_db';
 
-// Không cần truyền thêm các tùy chọn cũ (useNewUrlParser, etc.) để tránh lỗi phiên bản mới
 mongoose.connect(dbURI)
 .then(() => console.log('✅ Đã kết nối Database thành công!'))
 .catch(err => console.error('❌ Lỗi kết nối Database:', err));
@@ -37,15 +35,13 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // --- XỬ LÝ SOCKET.IO ---
-const activeRooms = {};
-
 io.on('connection', (socket) => {
     socket.on('player_move', (data) => {
         socket.to(data.roomId).emit('opponent_moved', data);
     });
 
     socket.on('match_end', async (data) => {
-        const { winnerName, loserName, roomId } = data;
+        const { winnerName, loserName } = data;
         try {
             const winner = await User.findOne({ username: winnerName });
             const loser = await User.findOne({ username: loserName });
@@ -58,18 +54,20 @@ io.on('connection', (socket) => {
             }
         } catch (error) { console.log("Lỗi cập nhật điểm:", error); }
     });
-
-    socket.on('disconnect', () => {
-        console.log('Người chơi đã thoát');
-    });
 });
 
-// --- ROUTE PHỤC VỤ GIAO DIỆN ---
-app.get('*', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+// --- ROUTE PHỤC VỤ GIAO DIỆN (ĐÃ FIX LỖI PATH) ---
+app.use((req, res, next) => {
+    // Nếu request không phải là API (không bắt đầu bằng /api hoặc /socket.io)
+    // thì gửi file index.html để React/Frontend xử lý
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
+        res.sendFile(__dirname + '/index.html');
+    } else {
+        next();
+    }
 });
 
-// Lắng nghe port từ Render cấp hoặc dùng 3000
+// Lắng nghe port
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại cổng ${PORT}`);
