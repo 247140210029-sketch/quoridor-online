@@ -15,15 +15,12 @@ app.use(express.static(__dirname));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// --- KẾT NỐI DATABASE MONGODB (ĐÃ TỐI ƯU) ---
-// Hệ thống sẽ ưu tiên dùng link trên Render (MONGODB_URI), 
-// nếu không có thì nó tự dùng localhost để bạn test ở máy nhà.
+// --- KẾT NỐI DATABASE MONGODB (ĐÃ LÀM SẠCH) ---
+// Render sẽ tự động cấp MONGODB_URI qua Environment Variables
 const dbURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/quoridor_db';
 
-mongoose.connect(dbURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+// Không cần truyền thêm các tùy chọn cũ (useNewUrlParser, etc.) để tránh lỗi phiên bản mới
+mongoose.connect(dbURI)
 .then(() => console.log('✅ Đã kết nối Database thành công!'))
 .catch(err => console.error('❌ Lỗi kết nối Database:', err));
 
@@ -67,7 +64,12 @@ io.on('connection', (socket) => {
     });
 });
 
-// Lắng nghe port
+// --- ROUTE PHỤC VỤ GIAO DIỆN ---
+app.get('*', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// Lắng nghe port từ Render cấp hoặc dùng 3000
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại cổng ${PORT}`);
